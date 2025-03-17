@@ -15,7 +15,7 @@ function App() {
         }}
       >
         <Box>
-          <Heading>Operator tools</Heading>
+          <Heading>Walrus Operator tools</Heading>
         </Box>
 
         <Box>

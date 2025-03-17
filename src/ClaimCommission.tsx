@@ -36,7 +36,7 @@ function prepareTransaction(nodeId: string) {
 function ClaimCommission() {
     const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
     const [ nodeId, setNodeId ] = useState('');
-    const [digest, setDigest] = useState('');
+    const [ digest, setDigest ] = useState('');
     const currentAccount = useCurrentAccount();
 
     return (

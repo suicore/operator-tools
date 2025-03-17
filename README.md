@@ -1,35 +1,30 @@
-# Sui dApp Starter Template
+# Walrus Operator Tools 🛠️
 
-This dApp was created using `@mysten/create-dapp` that sets up a basic React
-Client dApp using the following tools:
+## Description
+Walrus Operator Tools is a set of utilities designed to assist Walrus Operators in managing their operations efficiently. Currently, it provides support for:
 
-- [React](https://react.dev/) as the UI framework
-- [TypeScript](https://www.typescriptlang.org/) for type checking
-- [Vite](https://vitejs.dev/) for build tooling
-- [Radix UI](https://www.radix-ui.com/) for pre-built UI components
-- [ESLint](https://eslint.org/)
-- [`@mysten/dapp-kit`](https://sdk.mystenlabs.com/dapp-kit) for connecting to
-  wallets and loading data
-- [pnpm](https://pnpm.io/) for package management
+- ✅ **Walrus Commission Claim**: Enables commission collection using Sui Wallet-compatible wallets, including:
+  - 🔹 **zkLogin wallets**
+  - 🔹 **Hardware wallets**
+  - 🔹 **Passphrase wallets**
 
-## Starting your dApp
+## How to Use
 
-To install dependencies you can run
+You can access Walrus Operator Tools through the following options:
 
+### 🔗 Online Usage
+Use the tool directly from your browser:
+
+[➡️ https://operator.suicore.com](https://operator.suicore.com)
+
+### 🖥️ Run Locally
+Clone the repository and run it locally:
 ```bash
-pnpm install
+git clone https://github.com/suicore/operator-tools.git
+cd operator-tools
+npm install
+npm run dev
 ```
 
-To start your dApp in development mode run
-
-```bash
-pnpm dev
-```
-
-## Building
-
-To build your app for deployment you can run
-
-```bash
-pnpm build
-```
+## License
+This project is licensed under the MIT License.

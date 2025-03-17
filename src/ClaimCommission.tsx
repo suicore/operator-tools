@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { STAKING_OBJ, WALRUS_PKG } from "./constants.ts";
 import { Button, TextField, Text } from "@radix-ui/themes";
 import { FileTextIcon } from "@radix-ui/react-icons";
-import {Label} from "@radix-ui/themes/components/select";
 
 function prepareTransaction(nodeId: string) {
     if (!nodeId) {

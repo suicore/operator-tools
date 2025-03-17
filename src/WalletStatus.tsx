@@ -9,14 +9,11 @@ export function WalletStatus() {
     <Container my="2">
       {account ? (
         <Flex direction="column">
-          <Text>Wallet connected</Text>
-          <Text>Address: {account.address}</Text>
+            <ClaimCommission />
         </Flex>
       ) : (
         <Text>Wallet not connected</Text>
       )}
-      {/*<OwnedObjects />*/}
-      <ClaimCommission />
     </Container>
   );
 }

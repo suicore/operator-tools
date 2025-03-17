@@ -12,7 +12,7 @@ export function WalletStatus() {
 					<ClaimCommission />
 				</Flex>
 			) : (
-				<Text>Wallet not connected</Text>
+				<Text>Wallet not connected, please connect your wallet.</Text>
 			)}
 		</Container>
 	);

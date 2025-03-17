@@ -2,10 +2,15 @@ import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-ki
 import {Transaction, TransactionArgument} from '@mysten/sui/transactions';
 import { useState } from 'react';
 import { STAKING_OBJ, WALRUS_PKG } from "./constants.ts";
-import { Button, TextField } from "@radix-ui/themes";
+import { Button, TextField, Text } from "@radix-ui/themes";
 import { FileTextIcon } from "@radix-ui/react-icons";
+import {Label} from "@radix-ui/themes/components/select";
 
 function prepareTransaction(nodeId: string) {
+    if (!nodeId) {
+        alert('Node ID is required');
+        return
+    }
     const tx = new Transaction();
     // Step 1: Get sender
     const sender = tx.moveCall({
@@ -44,36 +49,48 @@ function ClaimCommission() {
             {currentAccount && (
                 <>
                     <div>
-                    <TextField.Root placeholder="Node ID" onChange={(e) => setNodeId(e.target.value)} value={nodeId}>
+                        <Text as="label">Enter your node ID to claim rewards:</Text>
+
+                        <TextField.Root
+                            placeholder="Node ID"
+                            onChange={(e) => setNodeId(e.target.value)}
+                            value={nodeId}>
                         <TextField.Slot>
                             <FileTextIcon height="16" width="16" />
                         </TextField.Slot>
                     </TextField.Root>
                     <Button
-                            onClick={async () => {
-                                const tx = prepareTransaction(nodeId);
-                                console.log(await tx.toJSON())
+                        style={{ marginTop: 10, marginBottom: 10 }}
+                        onClick={async () => {
+                            const tx = prepareTransaction(nodeId);
+                            if (!tx) {
+                                return;
+                            }
+                            console.log(await tx.toJSON())
 
-                                signAndExecuteTransaction(
-                                    {
-                                        transaction: tx,
+                            signAndExecuteTransaction(
+                                {
+                                    transaction: tx,
+                                },
+                                {
+                                    onSuccess: (result) => {
+                                        console.log('Executed transaction:', result);
+                                        setDigest(result.digest);
                                     },
-                                    {
-                                        onSuccess: (result) => {
-                                            console.log('Executed transaction:', result);
-                                            setDigest(result.digest);
-                                        },
-                                        onError: (error) => {
-                                            console.error('Transaction failed:', error);
-                                        },
-                                    }
-                                );
-                            }}
+                                    onError: (error) => {
+                                        console.error('Transaction failed:', error);
+                                    },
+                                }
+                            );
+                        }}
+                        disabled={nodeId === ''}
                         >
                             Claim Commission
                         </Button>
                     </div>
-                    <div>Digest: {digest}</div>
+                    {digest &&
+                        <div>Digest: {digest}</div>
+                    }
                 </>
             )}
         </div>

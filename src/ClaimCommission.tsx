@@ -3,7 +3,7 @@ import { Transaction, TransactionArgument } from "@mysten/sui/transactions";
 import { getFullnodeUrl, SuiClient, SuiParsedData } from "@mysten/sui/client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@radix-ui/themes";
+import { Button, Table } from "@radix-ui/themes";
 
 import { CommissionReceiverFields, NodeInfoFieldsOverride, NodeType, ObjectChangeOverride } from "./types.tsx";
 import { STAKING_OBJ, WALRUS_PKG } from "./constants.ts";
@@ -39,6 +39,8 @@ function prepareTransaction(nodeId: string | undefined): Transaction | null {
 function ClaimCommission() {
 	const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 	const [node, setNode] = useState<NodeType | null>(null);
+	const [allNodes, setAllNodes] = useState<Record<string, NodeType>>({});
+	const [showNodes, setShowNodes] = useState(false);
 	const [digest, setDigest] = useState("");
 	const [error, setError] = useState("");
 	const [manualNodeId, setManualNodeId] = useState("");
@@ -142,7 +144,7 @@ function ClaimCommission() {
 			}
 			const activeWallet = currentAccount?.address;
 			if (!activeWallet) return;
-
+			setAllNodes(nodeData);
 			const selectedNode = nodeData[activeWallet];
 			if (!selectedNode) {
 				setError("The wallet isn't associated with any node");
@@ -174,12 +176,18 @@ function ClaimCommission() {
 							</div>
 						</>
 					)}
-					{digest && <>Digest: {digest}</>}
+					{digest && (
+						<>
+							Digest: <a target="_blank" href={`https://suiscan.xyz/mainnet/tx/${digest}`}>{digest}</a>
+						</>
+					)}
 					{!node && error && (
 						<>
 							<div>Error: {error}</div>
 							<div>
 								Enter your Node Id to try manually:
+							</div>
+							<div>
 								<input type="text" onChange={(e) => setManualNodeId(e.target.value)} />
 							</div>
 							<div>
@@ -194,6 +202,38 @@ function ClaimCommission() {
 						</>
 					)}
 					{node && error && <div>Error: {error}</div>}
+				</>
+			)}
+			{Object.keys(allNodes).length !== 0 && (
+				<>
+					<Button onClick={() => setShowNodes(!showNodes)}>
+						Show all nodes
+					</Button>
+				</>
+			)}
+			{Object.keys(allNodes).length !== 0 && showNodes && (
+				<>
+					<div>Count: {Object.keys(allNodes).length}</div>
+					<div>
+						<Table.Root>
+							<Table.Header>
+								<Table.Row>
+									<Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
+									<Table.ColumnHeaderCell>Node ID</Table.ColumnHeaderCell>
+								</Table.Row>
+							</Table.Header>
+							<Table.Body>
+								{Object.keys(allNodes)
+									.sort((a, b) => allNodes[a].name.localeCompare(allNodes[b].name)) // Sort by name
+									.map((key) => (
+										<Table.Row key={key}>
+											<Table.Cell>{allNodes[key].name}</Table.Cell>
+											<Table.Cell>{allNodes[key].nodeId}</Table.Cell>
+										</Table.Row>
+								))}
+							</Table.Body>
+						</Table.Root>
+					</div>
 				</>
 			)}
 		</div>

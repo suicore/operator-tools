@@ -80,33 +80,12 @@ function ClaimCommission() {
 		const rpcUrl = getFullnodeUrl("mainnet");
 		const client = new SuiClient({ url: rpcUrl });
 		const fetchNodeData = async () => {
-			let nextCursor = null;
-			let hasNextPage = false;
-			const transactions = [];
-			do {
-				const res = await client.queryTransactionBlocks({
-					filter: {
-						MoveFunction: {
-							function: "new",
-							module: "node_metadata",
-							package: WALRUS_PKG,
-						},
-					},
-					cursor: nextCursor,
-				});
-				transactions.push(...res.data);
-				nextCursor = res.nextCursor;
-				hasNextPage = res.hasNextPage;
-			} while (hasNextPage);
-
 			const nodesResponnse = await fetch(
 				`https://walruscan.com/api/walscan-backend/mainnet/api/validators?page=0&sortBy=STAKE&orderBy=DESC&searchStr=&size=150`,
 			)
 
 			const walruscanNodeData = (await nodesResponnse.json()) as unknown as {content: WalrusScanNode[]}
 			const nodesObjIds = walruscanNodeData['content'].map((node: WalrusScanNode) => node['validatorHash']);
-
-			console.log(nodesObjIds);
 
 			const nodeData: Record<string, { name: string; nodeId: string; commissionReceiver: string }> = {};
 			for (let i = 0; i < nodesObjIds.length; i += 50) {
@@ -133,7 +112,7 @@ function ClaimCommission() {
 					};
 				}
 			}
-			console.log(nodeData)
+
 			const activeWallet = currentAccount?.address;
 			if (!activeWallet) return;
 			setAllNodes(nodeData);

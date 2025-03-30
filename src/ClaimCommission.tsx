@@ -5,7 +5,7 @@ import { getFullnodeUrl, SuiClient, SuiParsedData } from "@mysten/sui/client";
 import { useEffect, useState } from "react";
 import { Button, Table } from "@radix-ui/themes";
 
-import { CommissionReceiverFields, NodeInfoFieldsOverride, NodeType, ObjectChangeOverride } from "./types.tsx";
+import { CommissionReceiverFields, NodeInfoFieldsOverride, NodeType, WalrusScanNode } from "./types.tsx";
 import { STAKING_OBJ, WALRUS_PKG } from "./constants.ts";
 
 function prepareTransaction(nodeId: string | undefined): Transaction | null {
@@ -40,7 +40,8 @@ function ClaimCommission() {
 	const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 	const [node, setNode] = useState<NodeType | null>(null);
 	const [allNodes, setAllNodes] = useState<Record<string, NodeType>>({});
-	const [showNodes, setShowNodes] = useState(false);
+	const [showNodeIds, setShowNodeIds] = useState(false);
+	const [showNodeWallets, setShowNodeWallets] = useState(false);
 	const [digest, setDigest] = useState("");
 	const [error, setError] = useState("");
 	const [manualNodeId, setManualNodeId] = useState("");
@@ -98,27 +99,16 @@ function ClaimCommission() {
 				hasNextPage = res.hasNextPage;
 			} while (hasNextPage);
 
-			const nodesObjIds = [];
-			for (let i = 0; i < transactions.length; i += 50) {
-				const digests = transactions.slice(i, i + 50).map((x) => x.digest);
-				const res = await client.multiGetTransactionBlocks({
-					digests,
-					options: {
-						showObjectChanges: true,
-					},
-				});
+			const nodesResponnse = await fetch(
+				`https://walruscan.com/api/walscan-backend/mainnet/api/validators?page=0&sortBy=STAKE&orderBy=DESC&searchStr=&size=150`,
+			)
 
-				for (const obj of res) {
-					const objectChanges = obj.objectChanges ?? [];
-					for (const objectChange of objectChanges) {
-						if ((objectChange as unknown as ObjectChangeOverride).objectType?.endsWith("StakingPool")) {
-							nodesObjIds.push((objectChange as unknown as ObjectChangeOverride).objectId);
-						}
-					}
-				}
-			}
+			const walruscanNodeData = (await nodesResponnse.json()) as unknown as {content: WalrusScanNode[]}
+			const nodesObjIds = walruscanNodeData['content'].map((node: WalrusScanNode) => node['validatorHash']);
 
-			const nodeData: Record<string, { name: string; nodeId: string }> = {};
+			console.log(nodesObjIds);
+
+			const nodeData: Record<string, { name: string; nodeId: string; commissionReceiver: string }> = {};
 			for (let i = 0; i < nodesObjIds.length; i += 50) {
 				const ids = nodesObjIds.slice(i, i + 50);
 				const res = await client.multiGetObjects({
@@ -139,9 +129,11 @@ function ClaimCommission() {
 					nodeData[commissionReceiver] = {
 						name: nodeInfo.name,
 						nodeId: nodeInfo.node_id,
+						commissionReceiver,
 					};
 				}
 			}
+			console.log(nodeData)
 			const activeWallet = currentAccount?.address;
 			if (!activeWallet) return;
 			setAllNodes(nodeData);
@@ -205,13 +197,20 @@ function ClaimCommission() {
 				</>
 			)}
 			{Object.keys(allNodes).length !== 0 && (
-				<>
-					<Button onClick={() => setShowNodes(!showNodes)}>
+				<div style={{ marginTop: 10, marginBottom: 10 }}>
+					<Button onClick={() => setShowNodeIds(!showNodeIds)}>
 						Show all nodes
 					</Button>
-				</>
+				</div>
 			)}
-			{Object.keys(allNodes).length !== 0 && showNodes && (
+			{Object.keys(allNodes).length !== 0 && (
+				<div style={{ marginTop: 10, marginBottom: 10 }}>
+					<Button onClick={() => setShowNodeWallets(!showNodeWallets)}>
+						Show node commission receiver
+					</Button>
+				</div>
+			)}
+			{Object.keys(allNodes).length !== 0 && showNodeIds && (
 				<>
 					<div>Count: {Object.keys(allNodes).length}</div>
 					<div>
@@ -231,6 +230,31 @@ function ClaimCommission() {
 											<Table.Cell>{allNodes[key].nodeId}</Table.Cell>
 										</Table.Row>
 								))}
+							</Table.Body>
+						</Table.Root>
+					</div>
+				</>
+			)}
+			{Object.keys(allNodes).length !== 0 && showNodeWallets && (
+				<>
+					<div>Count: {Object.keys(allNodes).length}</div>
+					<div>
+						<Table.Root>
+							<Table.Header>
+								<Table.Row>
+									<Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
+									<Table.ColumnHeaderCell>Node ID</Table.ColumnHeaderCell>
+								</Table.Row>
+							</Table.Header>
+							<Table.Body>
+								{Object.keys(allNodes)
+									.sort((a, b) => allNodes[a].name.localeCompare(allNodes[b].name)) // Sort by name
+									.map((key) => (
+										<Table.Row key={key}>
+											<Table.Cell>{allNodes[key].name}</Table.Cell>
+											<Table.Cell>{allNodes[key].commissionReceiver}</Table.Cell>
+										</Table.Row>
+									))}
 							</Table.Body>
 						</Table.Root>
 					</div>

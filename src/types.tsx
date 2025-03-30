@@ -1,7 +1,22 @@
 export type NodeType = {
 	name: string;
 	nodeId: string;
+	commissionReceiver: string;
 };
+
+export type WalrusScanNode = {
+	validatorHash: string;
+	validatorName: string;
+	commissionRate: number;
+	stake: number;
+	state: string;
+	nodeCapacity: number;
+	storagePrice: number;
+	writePrice: number;
+	poolShare: number;
+	weight: number;
+	operator: boolean;
+}
 
 export type ObjectChangeOverride = {
 	digest: string;
@@ -17,6 +32,7 @@ export type NodeInfoFieldsOverride = {
 		fields: {
 			name: string;
 			node_id: string;
+			commission: string;
 		};
 	};
 };

@@ -177,14 +177,19 @@ function ClaimCommission() {
 			)}
 			{Object.keys(allNodes).length !== 0 && (
 				<div style={{ marginTop: 10, marginBottom: 10 }}>
-					<Button onClick={() => setShowNodeIds(!showNodeIds)}>
+					<Button onClick={() => {
+						if (showNodeWallets) setShowNodeWallets(false);
+						setShowNodeIds(!showNodeIds)
+					}}>
 						Show all nodes
 					</Button>
 				</div>
 			)}
 			{Object.keys(allNodes).length !== 0 && (
 				<div style={{ marginTop: 10, marginBottom: 10 }}>
-					<Button onClick={() => setShowNodeWallets(!showNodeWallets)}>
+					<Button onClick={() => {
+						if (showNodeIds) setShowNodeIds(false); setShowNodeWallets(!showNodeWallets);
+					}}>
 						Show node commission receiver
 					</Button>
 				</div>
@@ -222,7 +227,7 @@ function ClaimCommission() {
 							<Table.Header>
 								<Table.Row>
 									<Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-									<Table.ColumnHeaderCell>Node ID</Table.ColumnHeaderCell>
+									<Table.ColumnHeaderCell>Commision Wallet</Table.ColumnHeaderCell>
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>

@@ -4,12 +4,15 @@ services:
     container_name: operator-suicore-be
     restart: always
     ports:
-      - "6969:6969"
+      - "127.0.0.1:6969:6969"
     depends_on:
       - redis
   redis:
-    image: redis:latest
+    image: redis:6.2
     container_name: operator-suicore-redis
-    restart: always
     ports:
       - "127.0.0.1:6379:6379"
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+

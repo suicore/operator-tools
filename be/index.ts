@@ -1,17 +1,35 @@
 import express from 'express';
 import cors from 'cors';
-const PORT = 6969;
+import redis from 'redis';
 
 const app = express()
+const PORT = 6969;
+
+const redisClient = redis.createClient({
+	url: 'redis://default:default@localhost:6379',
+});
 
 app.use(cors())
 
 app.get('/api/validators', async (req: any, res: any) => {
+	// Check redis cache first
+	const cachedData = await redisClient.get('walruscanNodeData');
+	if (cachedData) {
+		return res.json(JSON.parse(cachedData));
+	}
+
+	console.log('Fetching data from walruscan...');
 	const walruscanNodeData = await fetch(
 		`https://walruscan.com/api/walscan-backend/mainnet/api/validators?page=0&sortBy=STAKE&orderBy=DESC&searchStr=&size=150`
 	);
+
+	if (!walruscanNodeData.ok) {
+		console.log(walruscanNodeData.statusText);
+		return res.status(500).json({ error: 'Failed to fetch data from walruscan' });
+	}
+
 	const data = await walruscanNodeData.json();
-	console.log(data)
+	await redisClient.set('walruscanNodeData', JSON.stringify(data))
 	res.json(data);
 });
 

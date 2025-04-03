@@ -5,3 +5,9 @@ services:
     restart: always
     ports:
       - "6969:6969"
+  redis:
+    image: redis:latest
+    container_name: operator-suicore-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"

@@ -109,6 +109,7 @@ function ClaimCommission() {
 						name: nodeInfo.name,
 						nodeId: nodeInfo.node_id,
 						commissionReceiver,
+						type: undefined
 					};
 				}
 			}
@@ -123,9 +124,12 @@ function ClaimCommission() {
 				});
 
 				for (const obj of res) {
-					const type: string | null | undefined = obj.data ? obj.data.type?.split('::')[2] : 'wallet';
+					console.log(obj)
+					const type: string | null | undefined = obj.data ? obj.data.type?.split('::')[2] : 'Wallet';
 					console.log(type)
-					const address: string = (obj as {objectId: string}).objectId;
+					const address: string = obj.data ? obj.data.objectId : (obj as unknown as {error: {object_id: string}}).error.object_id;
+					console.log(address)
+					console.log(nodeData[address])
 					nodeData[address].type = type;
 				}
 			}

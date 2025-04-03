@@ -26,7 +26,7 @@ app.get('/api/validators', async (req: any, res: any) => {
 	// Add 5 retries if the fetch fails
 	if (!nodeData) {
 		console.log('Fetching data from walruscan failed, trying again...');
-		for (let i = 0; i < 5; i++) {
+		for (let i = 0; i < 10; i++) {
 			const retryData = await fetchNodeData();
 			if (retryData) {
 				await redisClient.set('walruscanNodeData', JSON.stringify(retryData), {

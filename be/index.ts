@@ -22,19 +22,34 @@ app.get('/api/validators', async (req: any, res: any) => {
 		return res.json(JSON.parse(cachedData));
 	}
 
-	console.log('Fetching data from walruscan...');
-	const walruscanNodeData = await fetch(
+	const nodeData = await fetchNodeData();
+	// Add 5 retries if the fetch fails
+	if (!nodeData) {
+		console.log('Fetching data from walruscan failed, trying again...');
+		for (let i = 0; i < 5; i++) {
+			const retryData = await fetchNodeData();
+			if (retryData) {
+				await redisClient.set('walruscanNodeData', JSON.stringify(retryData), {
+					EX: 12 * 3600, // cache for 12 hours (12 * 3600 seconds)
+				});
+				return res.json(retryData);
+			}
+			console.log(`Retry ${i + 1} failed...`);
+		}
+		return res.status(500).json({ error: 'Failed to fetch data from walruscan' });
+	}
+});
+
+async function fetchNodeData() {
+	const response = await fetch(
 		`https://walruscan.com/api/walscan-backend/mainnet/api/validators?page=0&sortBy=STAKE&orderBy=DESC&searchStr=&size=150`
 	);
 
-	if (!walruscanNodeData.ok) {
-		console.log(walruscanNodeData.statusText);
-		return res.status(500).json({ error: 'Failed to fetch data from walruscan' });
+	if (!response.ok) {
+		return false
 	}
 
-	const data = await walruscanNodeData.json();
-	await redisClient.set('walruscanNodeData', JSON.stringify(data))
-	res.json(data);
-});
+	return await response.json();
+}
 
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));

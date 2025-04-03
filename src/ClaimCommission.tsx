@@ -124,12 +124,8 @@ function ClaimCommission() {
 				});
 
 				for (const obj of res) {
-					console.log(obj)
 					const type: string | null | undefined = obj.data ? obj.data.type?.split('::')[2] : 'Wallet';
-					console.log(type)
 					const address: string = obj.data ? obj.data.objectId : (obj as unknown as {error: {object_id: string}}).error.object_id;
-					console.log(address)
-					console.log(nodeData[address])
 					nodeData[address].type = type;
 				}
 			}

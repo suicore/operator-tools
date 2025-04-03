@@ -1,0 +1,7 @@
+services:
+  be:
+    image: mitsosf/operator-suicore-be:latest
+    container_name: operator-suicore-be
+    restart: always
+    ports:
+      - "6969:6969"

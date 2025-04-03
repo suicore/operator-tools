@@ -1,0 +1,17 @@
+{
+  "name": "be",
+  "version": "0.0.1",
+  "description": "Backend for the be project",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "be": "bun run index.ts"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {},
+  "author": "",
+  "license": "ISC"
+}

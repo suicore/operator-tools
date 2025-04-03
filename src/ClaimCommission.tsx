@@ -81,13 +81,13 @@ function ClaimCommission() {
 		const client = new SuiClient({ url: rpcUrl });
 		const fetchNodeData = async () => {
 			const nodesResponnse = await fetch(
-				`https://walruscan.com/api/walscan-backend/mainnet/api/validators?page=0&sortBy=STAKE&orderBy=DESC&searchStr=&size=150`,
+				`https://operator-be.suicore.com/api/validators`,
 			)
 
 			const walruscanNodeData = (await nodesResponnse.json()) as unknown as {content: WalrusScanNode[]}
 			const nodesObjIds = walruscanNodeData['content'].map((node: WalrusScanNode) => node['validatorHash']);
 
-			const nodeData: Record<string, { name: string; nodeId: string; commissionReceiver: string }> = {};
+			const nodeData: Record<string, { name: string; nodeId: string; commissionReceiver: string; type?: string }> = {};
 			for (let i = 0; i < nodesObjIds.length; i += 50) {
 				const ids = nodesObjIds.slice(i, i + 50);
 				const res = await client.multiGetObjects({
@@ -110,6 +110,23 @@ function ClaimCommission() {
 						nodeId: nodeInfo.node_id,
 						commissionReceiver,
 					};
+				}
+			}
+
+			for (let i = 0; i < Object.keys(nodeData).length; i += 50) {
+				const walletIds = Object.keys(nodeData).slice(i, i + 50);
+				const res = await client.multiGetObjects({
+					ids: walletIds,
+					options: {
+						showType: true,
+					},
+				});
+
+				for (const obj of res) {
+					const type: string | null | undefined = obj.data ? obj.data.type?.split('::')[2] : 'wallet';
+					console.log(type)
+					const address: string = (obj as {objectId: string}).objectId;
+					nodeData[address].type = type;
 				}
 			}
 
@@ -228,6 +245,7 @@ function ClaimCommission() {
 								<Table.Row>
 									<Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
 									<Table.ColumnHeaderCell>Commision Wallet</Table.ColumnHeaderCell>
+									<Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
@@ -237,6 +255,7 @@ function ClaimCommission() {
 										<Table.Row key={key}>
 											<Table.Cell>{allNodes[key].name}</Table.Cell>
 											<Table.Cell>{allNodes[key].commissionReceiver}</Table.Cell>
+											<Table.Cell>{allNodes[key].type}</Table.Cell>
 										</Table.Row>
 									))}
 							</Table.Body>

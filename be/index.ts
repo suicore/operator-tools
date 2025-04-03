@@ -9,6 +9,10 @@ const redisClient = redis.createClient({
 	url: 'redis://default:default@redis:6379',
 });
 
+redisClient.connect()
+	.then(() => console.log('Connected to Redis'))
+	.catch((err) => console.error('Redis connection error:', err));
+
 app.use(cors())
 
 app.get('/api/validators', async (req: any, res: any) => {

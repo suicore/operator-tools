@@ -6,7 +6,7 @@ const app = express()
 const PORT = 6969;
 
 const redisClient = redis.createClient({
-	url: 'redis://default:default@localhost:6379',
+	url: 'redis://default:default@redis:6379',
 });
 
 app.use(cors())

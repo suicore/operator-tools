@@ -9,6 +9,8 @@ const redisClient = redis.createClient({
 	url: 'redis://default:default@redis:6379',
 });
 
+const API_FETCH = false;
+
 redisClient.connect()
 	.then(() => console.log('Connected to Redis'))
 	.catch((err) => console.error('Redis connection error:', err));
@@ -22,12 +24,12 @@ app.get('/api/validators', async (req: any, res: any) => {
 		return res.json(JSON.parse(cachedData));
 	}
 
-	const nodeData = await fetchNodeData();
+	const nodeData = API_FETCH ? await fetchNodeData() : await getNodeDataFromFile();
 	// Add 5 retries if the fetch fails
 	if (!nodeData) {
 		console.log('Fetching data from walruscan failed, trying again...');
 		for (let i = 0; i < 10; i++) {
-			const retryData = await fetchNodeData();
+			const retryData = API_FETCH ? await fetchNodeData() : await getNodeDataFromFile();
 			if (retryData) {
 				await redisClient.set('walruscanNodeData', JSON.stringify(retryData), {
 					EX: 12 * 3600, // cache for 12 hours (12 * 3600 seconds)
@@ -50,6 +52,12 @@ async function fetchNodeData() {
 	}
 
 	return await response.json();
+}
+
+async function getNodeDataFromFile() {
+	const fs = require('fs');
+	const data = fs.readFileSync('./operators.json', 'utf8');
+	return JSON.parse(data);
 }
 
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));

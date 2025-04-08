@@ -5,7 +5,7 @@ import { getFullnodeUrl, SuiClient, SuiParsedData } from "@mysten/sui/client";
 import { useEffect, useState } from "react";
 import { Button, Table } from "@radix-ui/themes";
 
-import { CommissionReceiverFields, NodeInfoFieldsOverride, NodeType, WalrusScanNode } from "./types.tsx";
+import { CommissionReceiverFields, NodeInfoFieldsOverride, NodeType } from "./types.tsx";
 import { STAKING_OBJ, WALRUS_PKG } from "./constants.ts";
 
 function prepareTransaction(nodeId: string | undefined): Transaction | null {
@@ -39,6 +39,7 @@ function prepareTransaction(nodeId: string | undefined): Transaction | null {
 function ClaimCommission() {
 	const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 	const [node, setNode] = useState<NodeType | null>(null);
+	const [multipleNodes, setMultipleNodes] = useState<NodeType[]>([]);
 	const [allNodes, setAllNodes] = useState<Record<string, NodeType>>({});
 	const [showNodeIds, setShowNodeIds] = useState(false);
 	const [showNodeWallets, setShowNodeWallets] = useState(false);
@@ -73,6 +74,7 @@ function ClaimCommission() {
 
 	useEffect(() => {
 		setNode(null);
+		setMultipleNodes([]);
 		setDigest("");
 		setError("");
 		setManualNodeId("");
@@ -80,14 +82,17 @@ function ClaimCommission() {
 		const rpcUrl = getFullnodeUrl("mainnet");
 		const client = new SuiClient({ url: rpcUrl });
 		const fetchNodeData = async () => {
-			const nodesResponnse = await fetch(
-				`https://walruscan.com/api/walscan-backend/mainnet/api/validators?page=0&sortBy=STAKE&orderBy=DESC&searchStr=&size=150`,
-			)
+			let hasNextPage = false;
+			let cursor = null;
+			const nodesObjIds: string[] = [];
+			do {
+				const nodeRes = await client.getDynamicFields({ parentId: '0x23ec98c791548aad0712822afab68a2a8c2a548b346193873cc80eb2f66d5b5e', cursor })
+				nodesObjIds.push(...nodeRes.data.map(nodeInfo => nodeInfo.objectId));
+				hasNextPage = nodeRes.hasNextPage;
+				cursor = nodeRes.nextCursor;
+			} while (hasNextPage)
 
-			const walruscanNodeData = (await nodesResponnse.json()) as unknown as {content: WalrusScanNode[]}
-			const nodesObjIds = walruscanNodeData['content'].map((node: WalrusScanNode) => node['validatorHash']);
-
-			const nodeData: Record<string, { name: string; nodeId: string; commissionReceiver: string }> = {};
+			const nodeData: Record<string, { name: string; nodeId: string; commissionReceiver: string; type?: string }> = {};
 			for (let i = 0; i < nodesObjIds.length; i += 50) {
 				const ids = nodesObjIds.slice(i, i + 50);
 				const res = await client.multiGetObjects({
@@ -97,6 +102,7 @@ function ClaimCommission() {
 						showType: true,
 					},
 				});
+
 				for (const obj of res) {
 					const data: SuiParsedData | null | undefined = obj.data?.content;
 					if (!data) continue;
@@ -105,25 +111,57 @@ function ClaimCommission() {
 
 					const commissionReceiver = (fields as CommissionReceiverFields).commission_receiver.fields.pos0;
 					const nodeInfo = (fields as NodeInfoFieldsOverride).node_info.fields;
-					nodeData[commissionReceiver] = {
+
+					nodeData[nodeInfo.node_id] = {
 						name: nodeInfo.name,
 						nodeId: nodeInfo.node_id,
 						commissionReceiver,
+						type: undefined
 					};
+				}
+			}
+
+			for (let i = 0; i < Object.keys(nodeData).length; i += 50) {
+				const walletIds = Object.values(nodeData).map(x => x.commissionReceiver).slice(i, i + 50);
+				const uniqueWalletIds = [...new Set(walletIds)];
+
+				const res = await client.multiGetObjects({
+					ids: uniqueWalletIds,
+					options: {
+						showType: true,
+					},
+				});
+
+				for (const obj of res) {
+					const type: string | null | undefined = obj.data ? obj.data.type?.split('::')[2] : 'Wallet';
+					const address: string = obj.data ? obj.data.objectId : (obj as unknown as {error: {object_id: string}}).error.object_id;
+					for (const node of Object.values(nodeData)) {
+						if (node.commissionReceiver === address) {
+							nodeData[node.nodeId].type = type;
+						}
+					}
 				}
 			}
 
 			const activeWallet = currentAccount?.address;
 			if (!activeWallet) return;
 			setAllNodes(nodeData);
-			const selectedNode = nodeData[activeWallet];
-			if (!selectedNode) {
+			const selectedNodes = Object.values(nodeData).filter((node) => node.commissionReceiver === activeWallet);
+
+			if (!selectedNodes.length) {
 				setError("The wallet isn't associated with any node");
 				console.error("Node not found");
 				return;
 			}
 
-			setNode(selectedNode);
+			if (selectedNodes.length > 1) {
+				setMultipleNodes(selectedNodes);
+				setNode(null);
+				return;
+			}
+
+			setNode(selectedNodes[0]);
+			setMultipleNodes([]);
 		};
 
 		fetchNodeData().catch(console.error);
@@ -147,6 +185,41 @@ function ClaimCommission() {
 							</div>
 						</>
 					)}
+					{multipleNodes.length > 0 && (
+							<>
+								<div>Multiple nodes found for this wallet:</div>
+								<div
+									style={{
+										display: "flex",
+										flexDirection: "column",
+										gap: 10,
+									}}
+								>
+									{multipleNodes.map((node) => (
+										<div
+											key={node.nodeId}
+											style={{
+												display: "flex",
+												flexDirection: "row",
+												gap: 10,
+												alignItems: "center",
+											}}
+										>
+											<div>{`${node.name} - ${node.nodeId}`}</div>
+											<Button
+												onClick={() => {
+													setNode(node);
+													setMultipleNodes([]);
+												}}
+											>
+												Select node
+											</Button>
+										</div>
+									))}
+								</div>
+							</>
+						)
+					}
 					{digest && (
 						<>
 							Digest: <a target="_blank" href={`https://suiscan.xyz/mainnet/tx/${digest}`}>{digest}</a>
@@ -228,6 +301,7 @@ function ClaimCommission() {
 								<Table.Row>
 									<Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
 									<Table.ColumnHeaderCell>Commision Wallet</Table.ColumnHeaderCell>
+									<Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
@@ -237,6 +311,7 @@ function ClaimCommission() {
 										<Table.Row key={key}>
 											<Table.Cell>{allNodes[key].name}</Table.Cell>
 											<Table.Cell>{allNodes[key].commissionReceiver}</Table.Cell>
+											<Table.Cell>{allNodes[key].type}</Table.Cell>
 										</Table.Row>
 									))}
 							</Table.Body>

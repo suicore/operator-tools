@@ -2,6 +2,7 @@ export type NodeType = {
 	name: string;
 	nodeId: string;
 	commissionReceiver: string;
+	type?: string;
 };
 
 export type WalrusScanNode = {

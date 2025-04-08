@@ -39,6 +39,7 @@ function prepareTransaction(nodeId: string | undefined): Transaction | null {
 function ClaimCommission() {
 	const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 	const [node, setNode] = useState<NodeType | null>(null);
+	const [multipleNodes, setMultipleNodes] = useState<NodeType[]>([]);
 	const [allNodes, setAllNodes] = useState<Record<string, NodeType>>({});
 	const [showNodeIds, setShowNodeIds] = useState(false);
 	const [showNodeWallets, setShowNodeWallets] = useState(false);
@@ -73,6 +74,7 @@ function ClaimCommission() {
 
 	useEffect(() => {
 		setNode(null);
+		setMultipleNodes([]);
 		setDigest("");
 		setError("");
 		setManualNodeId("");
@@ -100,6 +102,7 @@ function ClaimCommission() {
 						showType: true,
 					},
 				});
+
 				for (const obj of res) {
 					const data: SuiParsedData | null | undefined = obj.data?.content;
 					if (!data) continue;
@@ -108,7 +111,16 @@ function ClaimCommission() {
 
 					const commissionReceiver = (fields as CommissionReceiverFields).commission_receiver.fields.pos0;
 					const nodeInfo = (fields as NodeInfoFieldsOverride).node_info.fields;
-					nodeData[commissionReceiver] = {
+					if (nodeData[commissionReceiver]) {
+						console.log('1',nodeData[commissionReceiver]);
+						console.log('2', {
+							name: nodeInfo.name,
+							nodeId: nodeInfo.node_id,
+							commissionReceiver,
+							type: undefined
+						})
+					}
+					nodeData[nodeInfo.node_id] = {
 						name: nodeInfo.name,
 						nodeId: nodeInfo.node_id,
 						commissionReceiver,
@@ -118,9 +130,11 @@ function ClaimCommission() {
 			}
 
 			for (let i = 0; i < Object.keys(nodeData).length; i += 50) {
-				const walletIds = Object.keys(nodeData).slice(i, i + 50);
+				const walletIds = Object.values(nodeData).map(x => x.commissionReceiver).slice(i, i + 50);
+				const uniqueWalletIds = [...new Set(walletIds)];
+
 				const res = await client.multiGetObjects({
-					ids: walletIds,
+					ids: uniqueWalletIds,
 					options: {
 						showType: true,
 					},
@@ -129,21 +143,36 @@ function ClaimCommission() {
 				for (const obj of res) {
 					const type: string | null | undefined = obj.data ? obj.data.type?.split('::')[2] : 'Wallet';
 					const address: string = obj.data ? obj.data.objectId : (obj as unknown as {error: {object_id: string}}).error.object_id;
-					nodeData[address].type = type;
+					for (const node of Object.values(nodeData)) {
+						if (node.commissionReceiver === address) {
+							nodeData[node.nodeId].type = type;
+						}
+					}
 				}
 			}
 
 			const activeWallet = currentAccount?.address;
 			if (!activeWallet) return;
 			setAllNodes(nodeData);
-			const selectedNode = nodeData[activeWallet];
-			if (!selectedNode) {
+			const selectedNodes = Object.values(nodeData).filter((node) => node.commissionReceiver === activeWallet);
+			// find and select multiple nodes
+
+			console.log(selectedNodes);
+
+			if (!selectedNodes.length) {
 				setError("The wallet isn't associated with any node");
 				console.error("Node not found");
 				return;
 			}
 
-			setNode(selectedNode);
+			if (selectedNodes.length > 1) {
+				setMultipleNodes(selectedNodes);
+				setNode(null);
+				return;
+			}
+
+			setNode(selectedNodes[0]);
+			setMultipleNodes([]);
 		};
 
 		fetchNodeData().catch(console.error);
@@ -167,6 +196,41 @@ function ClaimCommission() {
 							</div>
 						</>
 					)}
+					{multipleNodes.length > 0 && (
+							<>
+								<div>Multiple nodes found for this wallet:</div>
+								<div
+									style={{
+										display: "flex",
+										flexDirection: "column",
+										gap: 10,
+									}}
+								>
+									{multipleNodes.map((node) => (
+										<div
+											key={node.nodeId}
+											style={{
+												display: "flex",
+												flexDirection: "row",
+												gap: 10,
+												alignItems: "center",
+											}}
+										>
+											<div>{`${node.name} - ${node.nodeId}`}</div>
+											<Button
+												onClick={() => {
+													setNode(node);
+													setMultipleNodes([]);
+												}}
+											>
+												Select node
+											</Button>
+										</div>
+									))}
+								</div>
+							</>
+						)
+					}
 					{digest && (
 						<>
 							Digest: <a target="_blank" href={`https://suiscan.xyz/mainnet/tx/${digest}`}>{digest}</a>

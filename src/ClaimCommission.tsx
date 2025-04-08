@@ -111,15 +111,7 @@ function ClaimCommission() {
 
 					const commissionReceiver = (fields as CommissionReceiverFields).commission_receiver.fields.pos0;
 					const nodeInfo = (fields as NodeInfoFieldsOverride).node_info.fields;
-					if (nodeData[commissionReceiver]) {
-						console.log('1',nodeData[commissionReceiver]);
-						console.log('2', {
-							name: nodeInfo.name,
-							nodeId: nodeInfo.node_id,
-							commissionReceiver,
-							type: undefined
-						})
-					}
+
 					nodeData[nodeInfo.node_id] = {
 						name: nodeInfo.name,
 						nodeId: nodeInfo.node_id,
@@ -155,9 +147,6 @@ function ClaimCommission() {
 			if (!activeWallet) return;
 			setAllNodes(nodeData);
 			const selectedNodes = Object.values(nodeData).filter((node) => node.commissionReceiver === activeWallet);
-			// find and select multiple nodes
-
-			console.log(selectedNodes);
 
 			if (!selectedNodes.length) {
 				setError("The wallet isn't associated with any node");

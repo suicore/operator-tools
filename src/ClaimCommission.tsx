@@ -5,7 +5,7 @@ import { getFullnodeUrl, SuiClient, SuiParsedData } from "@mysten/sui/client";
 import { useEffect, useState } from "react";
 import { Button, Table } from "@radix-ui/themes";
 
-import { CommissionReceiverFields, NodeInfoFieldsOverride, NodeType, WalrusScanNode } from "./types.tsx";
+import { CommissionReceiverFields, NodeInfoFieldsOverride, NodeType } from "./types.tsx";
 import { STAKING_OBJ, WALRUS_PKG } from "./constants.ts";
 
 function prepareTransaction(nodeId: string | undefined): Transaction | null {
@@ -80,12 +80,15 @@ function ClaimCommission() {
 		const rpcUrl = getFullnodeUrl("mainnet");
 		const client = new SuiClient({ url: rpcUrl });
 		const fetchNodeData = async () => {
-			const nodesResponnse = await fetch(
-				`https://operator-be.suicore.com/api/validators`,
-			)
-
-			const walruscanNodeData = (await nodesResponnse.json()) as unknown as {content: WalrusScanNode[]}
-			const nodesObjIds = walruscanNodeData['content'].map((node: WalrusScanNode) => node['validatorHash']);
+			let hasNextPage = false;
+			let cursor = null;
+			const nodesObjIds: string[] = [];
+			do {
+				const nodeRes = await client.getDynamicFields({ parentId: '0x23ec98c791548aad0712822afab68a2a8c2a548b346193873cc80eb2f66d5b5e', cursor })
+				nodesObjIds.push(...nodeRes.data.map(nodeInfo => nodeInfo.objectId));
+				hasNextPage = nodeRes.hasNextPage;
+				cursor = nodeRes.nextCursor;
+			} while (hasNextPage)
 
 			const nodeData: Record<string, { name: string; nodeId: string; commissionReceiver: string; type?: string }> = {};
 			for (let i = 0; i < nodesObjIds.length; i += 50) {

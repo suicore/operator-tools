@@ -2,7 +2,8 @@ export type NodeType = {
 	name: string;
 	nodeId: string;
 	commissionReceiver: string;
-	type?: string;
+	type: string;
+	commission: number;
 };
 
 export type WalrusScanNode = {
@@ -33,7 +34,7 @@ export type NodeInfoFieldsOverride = {
 		fields: {
 			name: string;
 			node_id: string;
-			commission: string;
+			commission: number;
 		};
 	};
 };

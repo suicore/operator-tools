@@ -92,7 +92,7 @@ function ClaimCommission() {
 				cursor = nodeRes.nextCursor;
 			} while (hasNextPage)
 
-			const nodeData: Record<string, { name: string; nodeId: string; commissionReceiver: string; type?: string }> = {};
+			const nodeData: Record<string, { name: string; nodeId: string; commissionReceiver: string; type: string; commission: number }> = {};
 			for (let i = 0; i < nodesObjIds.length; i += 50) {
 				const ids = nodesObjIds.slice(i, i + 50);
 				const res = await client.multiGetObjects({
@@ -108,6 +108,7 @@ function ClaimCommission() {
 					if (!data) continue;
 					const fields = data.dataType == "moveObject" ? data.fields : null;
 					if (!fields) continue;
+					const commission = (fields as {commission: number}).commission;
 
 					const commissionReceiver = (fields as CommissionReceiverFields).commission_receiver.fields.pos0;
 					const nodeInfo = (fields as NodeInfoFieldsOverride).node_info.fields;
@@ -115,8 +116,9 @@ function ClaimCommission() {
 					nodeData[nodeInfo.node_id] = {
 						name: nodeInfo.name,
 						nodeId: nodeInfo.node_id,
+						commission: Number((commission/ 10**9).toFixed(2)),
 						commissionReceiver,
-						type: undefined
+						type: '',
 					};
 				}
 			}
@@ -133,7 +135,7 @@ function ClaimCommission() {
 				});
 
 				for (const obj of res) {
-					const type: string | null | undefined = obj.data ? obj.data.type?.split('::')[2] : 'Wallet';
+					const type: string = obj.data ? obj.data.type?.split('::')[2] as string : 'Wallet';
 					const address: string = obj.data ? obj.data.objectId : (obj as unknown as {error: {object_id: string}}).error.object_id;
 					for (const node of Object.values(nodeData)) {
 						if (node.commissionReceiver === address) {
@@ -178,6 +180,21 @@ function ClaimCommission() {
 								<div>Node Name: {node.name}</div>
 								<div>Node ID: {node.nodeId}</div>
 							</div>
+							{node.commission === 0 && (
+								<div style={{ color: "yellow" }}>
+									You don't have assigned commission, check in the next epoch.
+								</div>
+							)}
+							{node.type === 'StorageNodeCap' && (
+								<div style={{ color: "red" }}>
+									Unsupported wallet type, please claim using the CLI.
+								</div>
+							)}
+							{node.commission > 0 && (
+								<div>
+									Available commission: {node.commission} WAL
+								</div>
+							)}
 							<div>
 								<Button style={{ marginTop: 10, marginBottom: 10 }} onClick={executeTransaction}>
 									Claim Commission
@@ -245,6 +262,11 @@ function ClaimCommission() {
 							</div>
 						</>
 					)}
+					{manualNodeId && (
+						<div style={{ color: "red" }}>
+							This is a manual operation, claim may not work.
+						</div>
+					)}
 					{node && error && <div>Error: {error}</div>}
 				</>
 			)}
@@ -276,6 +298,8 @@ function ClaimCommission() {
 								<Table.Row>
 									<Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
 									<Table.ColumnHeaderCell>Node ID</Table.ColumnHeaderCell>
+									<Table.ColumnHeaderCell>Commission</Table.ColumnHeaderCell>
+									<Table.ColumnHeaderCell>Manual set</Table.ColumnHeaderCell>
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
@@ -285,6 +309,17 @@ function ClaimCommission() {
 										<Table.Row key={key}>
 											<Table.Cell>{allNodes[key].name}</Table.Cell>
 											<Table.Cell>{allNodes[key].nodeId}</Table.Cell>
+											<Table.Cell>{allNodes[key].commission} WAL</Table.Cell>
+											<Table.Cell>
+												<Button
+													onClick={() => {
+														setNode(allNodes[key]);
+														setManualNodeId(allNodes[key].nodeId);
+													}}
+												>
+													Set
+												</Button>
+											</Table.Cell>
 										</Table.Row>
 								))}
 							</Table.Body>

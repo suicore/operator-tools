@@ -197,7 +197,7 @@ function ClaimCommission() {
 							)}
 							<div>
 								<Button style={{ marginTop: 10, marginBottom: 10 }} onClick={executeTransaction}>
-									Claim Commission
+									{`Claim commission (${node.commission} WAL)`}
 								</Button>
 							</div>
 						</>

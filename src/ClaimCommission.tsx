@@ -182,7 +182,7 @@ function ClaimCommission() {
 							</div>
 							{node.commission === 0 && (
 								<div style={{ color: "yellow" }}>
-									You don't have assigned commission, check in the next epoch.
+									No commission assigned at this time. Please check again next epoch.
 								</div>
 							)}
 							{node.type === 'StorageNodeCap' && (

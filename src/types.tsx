@@ -3,7 +3,15 @@ export type NodeType = {
 	nodeId: string;
 	commissionReceiver: string;
 	type: string;
+	/** Claimable now, i.e. the pool's commission minus what is locked. */
 	commission: number;
+	poolCommission: number;
+	lockedCommission: number;
+	extraFieldsId: string | null;
+	commissionRateBps: number;
+	pendingCommissionRate: { epoch: number; bps: number } | null;
+	stakedWal: number;
+	state: string;
 };
 
 export type WalrusScanNode = {
@@ -29,20 +37,21 @@ export type ObjectChangeOverride = {
 	version: string;
 };
 
-export type NodeInfoFieldsOverride = {
-	node_info: {
-		fields: {
-			name: string;
-			node_id: string;
-			commission: number;
-		};
+export type StakingPoolJson = {
+	commission: string;
+	commission_rate: number;
+	pending_commission_rate: { pos0: { contents: { key: number; value: string }[] } };
+	wal_balance: string;
+	state: { "@variant": string };
+	extra_fields: {
+		id: string;
+		size: string;
 	};
-};
-
-export type CommissionReceiverFields = {
 	commission_receiver: {
-		fields: {
-			pos0: string;
-		};
+		pos0: string;
+	};
+	node_info: {
+		name: string;
+		node_id: string;
 	};
 };
